@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拍照应用</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="camera-container">
+        <video id="video" autoplay playsinline muted></video>
+        <img id="photo-result" alt="拍摄结果" src="">
+        <div class="frame-overlay" id="frame"></div>
+        <div id="countdown-display"></div>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="start-btn"></button>
+
+        <div id="result-controls">
+            <button class="action-btn btn-retake" id="retake-btn">重新拍摄</button>
+            <button class="action-btn btn-save" id="save-btn">
+                长按保存
+                <span class="save-tip">长按保存图片</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
