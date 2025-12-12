@@ -1,4 +1,4 @@
-// 全局错误监听：如果代码崩了，直接弹窗显示原因
+// 全局错误监听
 window.onerror = function(msg, url, line) {
     const errorBox = document.getElementById('error-mask');
     const errorText = document.getElementById('error-msg');
@@ -6,7 +6,6 @@ window.onerror = function(msg, url, line) {
         errorBox.style.display = 'flex';
         errorText.innerText = "错误: " + msg + "\n行号: " + line;
     }
-    alert("❌ 程序发生错误:\n" + msg);
 };
 
 const video = document.getElementById('video');
@@ -17,17 +16,16 @@ const retakeBtn = document.getElementById('retake-btn');
 const saveBtn = document.getElementById('save-btn');
 const resultControls = document.getElementById('result-controls');
 const countdownDisplay = document.getElementById('countdown-display');
-const frameLayer = document.getElementById('frame-layer');
+// 这里获取的是 IMG 标签
+const frameImg = document.getElementById('frame-img');
 const qrImg = document.getElementById('qr-hidden');
 
 // 1. 初始化摄像头
 async function initCamera() {
-    // 兼容性检查
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("⚠️ 无法启动摄像头\n\n原因可能是：\n1. 不是 HTTPS 环境 (GitHub Pages 是支持的)\n2. 在微信中未授权 (请点右上角在浏览器打开)\n3. 系统权限未开启");
+        alert("⚠️ 无法启动摄像头\n请确保使用 HTTPS 协议，或检查浏览器权限。");
         return;
     }
-
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
@@ -40,7 +38,7 @@ async function initCamera() {
         video.srcObject = stream;
         video.play();
     } catch (err) {
-        alert("📷 摄像头调用被拒绝或出错:\n" + err.name + ": " + err.message);
+        alert("📷 摄像头启动失败: " + err.message);
     }
 }
 
@@ -63,41 +61,51 @@ startBtn.addEventListener('click', () => {
     }, 1000);
 });
 
-// 3. 拍照与合成
+// 3. 拍照与合成 (修复：确保框被画上去)
 function takePhoto() {
+    // 设置画布尺寸
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     
-    // A. 绘制人像 (镜像)
+    // A. 绘制人像 (镜像翻转)
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
+    // 这里的 drawImage 可能会因为 object-fit: cover 的视觉差异
+    // 导致拍出来的范围比预览看到的多一点点，这是正常物理现象
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // B. 绘制二维码 (右下角)
-    // ⚠️ 注意：当前方案下，保存的图片暂时没有相框（因为Base64在CSS里JS读不到）
-    // 我们先确保摄像头能用，下一步再解决保存带框的问题。
-    const qrWidth = canvas.width * 0.18;
+    // B. 绘制相框 (关键：读取 HTML 里的 img 标签)
+    if (frameImg && frameImg.complete) {
+        // 强制拉伸绘制，填满整张照片，确保框是完整的
+        ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+    } else {
+        alert("⚠️ 警告：相框图片似乎还没加载完，照片里可能没有框。");
+    }
+
+    // C. 绘制二维码 (右下角)
+    const qrWidth = canvas.width * 0.18; // 宽度占 18%
     const margin = 20; 
-    if(qrImg.complete && qrImg.naturalWidth > 0) {
+    if(qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
         ctx.drawImage(qrImg, canvas.width - qrWidth - margin, canvas.height - qrWidth - margin, qrWidth, qrWidth);
     }
 
-    // 生成图片
+    // 生成结果
     const dataUrl = canvas.toDataURL('image/png');
     photoResult.src = dataUrl;
     
+    // 切换界面
     photoResult.style.display = 'block';
-    frameLayer.style.display = 'none'; // 隐藏预览框
+    frameImg.style.display = 'none'; // 隐藏预览层的框，避免重影
     resultControls.style.display = 'flex';
 }
 
 // 4. 重新拍摄
 retakeBtn.addEventListener('click', () => {
     photoResult.style.display = 'none';
-    frameLayer.style.display = 'block'; // 显示预览框
+    frameImg.style.display = 'block'; // 把预览层的框显示回来
     resultControls.style.display = 'none';
     startBtn.style.display = 'block';
     photoResult.src = ""; 
@@ -108,10 +116,9 @@ function downloadImage() {
     const dataUrl = photoResult.src;
     if (!dataUrl) return;
     
-    // 创建链接下载
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = 'photo_' + Date.now() + '.png';
+    link.download = 'yunnan_photo_' + Date.now() + '.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
