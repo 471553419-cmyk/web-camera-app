@@ -13,7 +13,7 @@
 ## 🚀 在线体验 (Demo)
 
 点击下方链接在手机上体验（需授权摄像头）：
-👉 **[点击这里开始拍照](https://你的用户名.github.io/web-camera-app/)**
+👉 https://471553419-cmyk.github.io/web-camera-app/
 *(请将上面的链接替换为你第四步生成的真实链接)*
 
 ## 🛠️ 技术栈
