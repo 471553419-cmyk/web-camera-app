@@ -10,9 +10,15 @@
 
     <div id="camera-container">
         <video id="video" autoplay playsinline muted></video>
+        
         <img id="photo-result" alt="拍摄结果" src="">
-        <div class="frame-overlay" id="frame"></div>
+        
+        <img src="frame.png" class="frame-overlay" id="frame-img">
+        
+        <img src="qrcode.png" id="qr-hidden" style="display:none;">
+
         <div id="countdown-display"></div>
+        
         <canvas id="canvas" style="display:none;"></canvas>
     </div>
 

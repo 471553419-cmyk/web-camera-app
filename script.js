@@ -6,15 +6,16 @@ const retakeBtn = document.getElementById('retake-btn');
 const saveBtn = document.getElementById('save-btn');
 const resultControls = document.getElementById('result-controls');
 const countdownDisplay = document.getElementById('countdown-display');
-const frameOverlay = document.getElementById('frame');
+// 注意：这里我们获取的是图片元素
+const frameImg = document.getElementById('frame-img'); 
+const qrImg = document.getElementById('qr-hidden');
 
 // 1. 初始化摄像头
 async function initCamera() {
     try {
-        // 优先使用后置摄像头
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
-                facingMode: "environment", // "user" 为前置, "environment" 为后置
+                facingMode: "user", // "user" 前置
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             }, 
@@ -29,7 +30,7 @@ async function initCamera() {
 // 2. 倒计时拍摄逻辑
 startBtn.addEventListener('click', () => {
     let count = 3;
-    startBtn.style.display = 'none'; // 隐藏按钮
+    startBtn.style.display = 'none'; 
     countdownDisplay.style.display = 'block';
     countdownDisplay.innerText = count;
 
@@ -45,52 +46,72 @@ startBtn.addEventListener('click', () => {
     }, 1000);
 });
 
-// 3. 拍照功能
+// 3. 拍照功能 (合成：人像 + 框 + 二维码)
 function takePhoto() {
     // 设置画布尺寸与视频一致
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
     const context = canvas.getContext('2d');
-    // 将视频当前帧画到画布上
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // 转换为图片URL
+    // --- 步骤 A: 绘制摄像头画面 ---
+    // 技巧：为了让保存的照片也像镜子一样，我们需要水平翻转画布
+    context.save(); // 保存当前状态
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1); // 水平翻转
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.restore(); // 恢复状态，避免影响后续绘制
+    
+    // --- 步骤 B: 绘制拍照框 ---
+    // 将 frame.png 拉伸覆盖在全图上
+    context.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+
+    // --- 步骤 C: 绘制二维码 (右下角) ---
+    // 1. 设定二维码大小 (例如：占总宽度的 18%)
+    const qrWidth = canvas.width * 0.18;
+    const qrHeight = qrWidth; // 保持正方形
+    
+    // 2. 设定位置 (右下角，留出 20px 边距)
+    const margin = 20; 
+    const qrX = canvas.width - qrWidth - margin;
+    const qrY = canvas.height - qrHeight - margin;
+
+    // 3. 绘制
+    context.drawImage(qrImg, qrX, qrY, qrWidth, qrHeight);
+    
+    // --- 步骤 D: 生成最终图片 ---
     const dataUrl = canvas.toDataURL('image/png');
     photoResult.src = dataUrl;
     
     // 切换UI状态
     photoResult.style.display = 'block';
-    frameOverlay.style.display = 'none'; // 拍照后隐藏框
+    frameImg.style.display = 'none'; // 拍照后隐藏原来的框，因为照片里已经有了
     resultControls.style.display = 'flex';
 }
 
 // 4. 重新拍摄
 retakeBtn.addEventListener('click', () => {
     photoResult.style.display = 'none';
-    frameOverlay.style.display = 'block';
+    frameImg.style.display = 'block'; // 重新显示预览框
     resultControls.style.display = 'none';
     startBtn.style.display = 'block';
-    photoResult.src = ""; // 清空图片
+    photoResult.src = ""; 
 });
 
-// 5. 长按保存逻辑 (移动端兼容性处理)
+// 5. 长按保存逻辑
 let pressTimer;
 
-// 触摸开始
 saveBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // 防止默认点击行为
+    e.preventDefault();
     pressTimer = setTimeout(() => {
         downloadImage();
-    }, 800); // 800ms 算作长按
+    }, 800);
 });
 
-// 触摸结束
 saveBtn.addEventListener('touchend', () => {
     clearTimeout(pressTimer);
 });
 
-// 点击直接下载（备选）
 saveBtn.addEventListener('click', () => {
     downloadImage(); 
 });
@@ -99,7 +120,6 @@ function downloadImage() {
     const dataUrl = photoResult.src;
     if (!dataUrl) return;
 
-    // 创建临时链接下载
     const link = document.createElement('a');
     link.href = dataUrl;
     link.download = 'photo_' + new Date().getTime() + '.png';
@@ -107,7 +127,6 @@ function downloadImage() {
     link.click();
     document.body.removeChild(link);
     
-    // 提示
     alert("如果未自动下载，请长按屏幕中间的图片选择'保存到手机'。");
 }
 
