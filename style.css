@@ -1,101 +1,126 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background-color: #fff; /* 改回白底，去掉灰色背景 */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    text-align: center;
-    /* 去掉 padding，让内容顶格 */
-}
-
-.app-container {
-    width: 100%;
-    max-width: 100%; /* 去掉宽度限制，允许全屏 */
-    margin: 0;
-    padding: 0;      /* 去掉内边距 */
-    background: transparent; /* 去掉白色卡片背景 */
-    box-shadow: none;        /* 去掉阴影 */
-    border-radius: 0;        /* 去掉圆角 */
-}
-
-header {
-    padding: 15px 0 5px 0; /* 稍微留一点标题空间 */
-}
-
-header h3 {
-    color: #333;
-    font-size: 1.2rem;
-    margin: 0;
-}
-
-/* 核心：相机容器 */
-.camera-wrapper {
-    position: relative;
-    width: 100%;
-    /* 这里的 overflow: hidden 确保图片圆角（如果有）不溢出 */
+body { 
+    margin: 0; 
+    padding: 0; 
+    background-color: #000; 
     overflow: hidden; 
-    line-height: 0;
+    font-family: sans-serif; 
+    height: 100vh; 
+    display: block; /* 取消 flex，改用绝对定位布局 */
 }
 
-/* 视频全屏填充 */
-#video, #photo {
+/* 1. 容器占满全屏 */
+#camera-container {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    display: block;
-    object-fit: cover;
+    height: 100%; 
+    z-index: 1;
+    overflow: hidden;
 }
 
-/* 边框图：绝对定位覆盖 */
-#overlay-frame {
+/* 2. 视频：保持比例填满屏幕 (可能会有裁切，但为了全屏体验必须这样) */
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+    transform: scaleX(-1); /* 镜像 */
+}
+
+/* 3. 结果图：全屏显示 */
+#photo-result {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; 
+    object-fit: fill; /* 让结果图完整铺满 */
+    display: none;
     z-index: 10;
 }
 
-/* 按钮区域 */
-.controls {
-    margin-top: 20px;
-    padding-bottom: 20px;
+/* 4. 拍照框：强制拉伸填满 (解决框显示不全的问题) */
+.frame-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 关键：使用 fill 强制拉伸，确保上下左右都显示出来，不被裁切 */
+    object-fit: fill; 
+    pointer-events: none; /* 点击穿透 */
+    z-index: 5;
 }
 
-.btn {
-    padding: 12px 30px;
-    font-size: 16px;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    margin: 0 5px;
+/* 倒计时 */
+#countdown-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 100px;
+    color: white;
     font-weight: bold;
+    text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    display: none;
+    z-index: 20;
 }
 
-.btn-primary {
-    background-color: #007aff;
+/* 5. 底部控制区：改为透明浮层，不占用高度 */
+.controls {
+    position: absolute; /* 绝对定位，浮在视频上面 */
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 140px; 
+    /* 底部黑色渐变，防止按钮看不清 */
+    background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 30; 
+}
+
+#start-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 5px solid #ccc;
+    outline: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+#start-btn:active { background-color: #ddd; transform: scale(0.95); }
+
+#result-controls {
+    display: none; 
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 10px 25px;
+    border-radius: 25px;
+    border: none;
+    font-size: 16px;
     color: white;
-    width: 80%; /* 按钮保留宽度 */
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
 }
 
-.btn-secondary {
-    background-color: #e5e5ea;
-    color: #333;
-}
+.btn-retake { background-color: #555; }
+.btn-save { background-color: #28a745; position: relative;}
 
-.btn-success {
-    background-color: #34c759;
-    color: white;
-}
-
-/* 二维码 */
-.qrcode-area {
-    margin-top: 10px;
-    margin-bottom: 30px;
-}
-.qr-img {
-    width: 100px;
-    height: 100px;
+.save-tip {
+    font-size: 12px;
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    white-space: nowrap;
 }
